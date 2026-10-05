@@ -41,10 +41,16 @@ def get_entry(entry_id: int) -> dict:
 
 @router.post("", response_model=ActionResult)
 def create_entry(payload: EntryPayload) -> ActionResult:
-    """登记一条防火监测，缺字段时说明原因而不是静默丢弃。"""
-    entry, missing = service.create_entry(payload.values)
+    """登记一条防火监测，缺字段时说明原因而不是静默丢弃；重复登记只认第一次提交的内容。"""
+    entry, missing, created = service.create_entry(payload.values)
     if missing:
         return ActionResult(ok=False, message=f"缺少必填字段：{'、'.join(missing)}")
+    if not created:
+        return ActionResult(
+            ok=True,
+            message=f"防火监测 {entry.get('监测编号')} 已登记过，按首次提交内容为准",
+            entry=entry,
+        )
     return ActionResult(ok=True, message="防火监测已登记", entry=entry)
 
 
